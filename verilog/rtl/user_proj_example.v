@@ -166,55 +166,51 @@ endmodule
 module register_file #(
     parameter BITS = 32
 )(
-    // What needs to change for input:
-    // Need a wadr signal
-    // wstrobe is based on wbs_sel_i, and additionally, the module contains an input port
-    // for the wbs_adr_i. I need to change both the testbench and the signals to account for this
-    // address signal, in order to use it for testing.
-    // Q: Is the wbs_adr_i signal simply a forwarded value from the RISC core? Do I need to map
-    // the address provided by wbs_adr_i to the different registers I've created in my module?
+    // Old signals for comparison:
 
+    // output [BITS-1:0] count <- original signal. commented out
+    // input [3:0] wstrb, <- original signal. commented out
+    // input [BITS-1:0] la_write, <- Commenting out Logic Analysis Signals
+    // input [BITS-1:0] la_input, <- Commenting out LA Signals
+
+    // input signals
     input clk,
     input reset,
-    input valid,
-    // input [3:0] wstrb, <- original signal. commented out
-    input [BITS-1:0] wdata,
-    input [BITS-1:0] la_write,
-    input [BITS-1:0] la_input,
-    input [31:0] wbs_adr_i, // <- new signal
-    input we, // <- new signal
-    output ready,
-    output [BITS-1:0] data_o,
-    // output [BITS-1:0] count <- original signal. commented out
+    input valid, // <- strobe + cycle signals combined. Keep it for simplicity.
+    input we, // write enable
+    input [3:0] wsel,
+    input [31:0] wdata, // write data
+    input [31:0] wadr, // write address
+
+    // output signals
+    output ack,
+    output [31:0] data_o,
 );
-    reg ready;
-    // register-file data registers
-    reg [BITS-1:0] rfdata [15:0];
-    // data output
-    reg [BITS-1:0] data_o
+    // local registers
+    reg ack;
+    reg [31:0] rfdata [15:0]; // 16 registers, 32-bits wide
+    reg [31:0] data_o // data output
+
+
     // Register File to read/write data
-    // On reset, set all register values to 0
-    // Valid signal is fine.
-    // wstrb should be changed. It accounts for byte-specific data changes,
-    // but it does not account for a practical write-enable.
-    // What is la_oenb????
     always (@posedge clk) begin
         if (reset) begin
-            ready <= 0;
-            rdata <= 0;
+            ack <= 0;
+            rfdata <= 0; // On reset, set all register values to 0
         end else begin
-            ready <= 1'b0;
-            // Line below commented. Don't understand immediate relevance of the la_write signal
-
-            /* if (~|la_write) begin
-
-            end*/
-
-            if (valid && !ready) begin
-                ready <= 1'b1;
-                // Write/Readoperation. Don't yet understand if byte-addressing is necessary
+            ack <= 1'b0;
+            if (valid && !ack) begin
+                ack <= 1'b1;
+                // Write/Read Operations. If any wsel bits are active, write exclusively to those bits. 
                 if (we) begin
+                    if (~wsel) begin
                     rfdata[wbs_adr_i] <= wdata;
+                    end else begin
+                        if (wsel[0]) rfdata[wadr][7:0] <= wdata[7:0];
+                        if (wsel[1]) rfdata[wadr][15:8] <= wdata[15:8];
+                        if (wsel[2]) rfdata[wadr][23:16] <= wdata[23:16];
+                        if (wsel[3]) rfdata[wadr][31:24] <= wdata[31:24];
+                    end
                 end else begin
                     data_o <= rfdata[wbs_adr_i];
                 end
