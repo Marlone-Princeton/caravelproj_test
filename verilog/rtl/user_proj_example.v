@@ -166,19 +166,32 @@ endmodule
 module register_file #(
     parameter BITS = 32
 )(
+    // What needs to change for input:
+    // Need a wadr signal
+    // wstrobe is based on wbs_sel_i, and additionally, the module contains an input port
+    // for the wbs_adr_i. I need to change both the testbench and the signals to account for this
+    // address signal, in order to use it for testing.
+    // Q: Is the wbs_adr_i signal simply a forwarded value from the RISC core? Do I need to map
+    // the address provided by wbs_adr_i to the different registers I've created in my module?
+
     input clk,
     input reset,
     input valid,
-    input [3:0] wstrb,
+    // input [3:0] wstrb, <- original signal. commented out
     input [BITS-1:0] wdata,
     input [BITS-1:0] la_write,
     input [BITS-1:0] la_input,
+    input [31:0] wbs_adr_i, // <- new signal
+    input we, // <- new signal
     output ready,
-    output [BITS-1:0] rdata,
-    output [BITS-1:0] count
+    output [BITS-1:0] data_o,
+    // output [BITS-1:0] count <- original signal. commented out
 );
     reg ready;
-    reg [BITS-1:0] rdata [15:0];
+    // register-file data registers
+    reg [BITS-1:0] rfdata [15:0];
+    // data output
+    reg [BITS-1:0] data_o
     // Register File to read/write data
     // On reset, set all register values to 0
     // Valid signal is fine.
@@ -191,12 +204,20 @@ module register_file #(
             rdata <= 0;
         end else begin
             ready <= 1'b0;
-            if (~|la_write) begin
+            // Line below commented. Don't understand immediate relevance of the la_write signal
 
-            end
+            /* if (~|la_write) begin
+
+            end*/
+
             if (valid && !ready) begin
                 ready <= 1'b1;
-                
+                // Write/Readoperation. Don't yet understand if byte-addressing is necessary
+                if (we) begin
+                    rfdata[wbs_adr_i] <= wdata;
+                end else begin
+                    data_o <= rfdata[wbs_adr_i];
+                end
             end
         end
     end
