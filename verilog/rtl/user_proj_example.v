@@ -206,6 +206,8 @@ module register_file #(
                     if (~wsel) begin
                     rfdata[wbs_adr_i] <= wdata;
                     end else begin
+                        // the "wadr" doesn't map to any particular address. I need to figure out how to set this in either the test bench
+                        // or here in the code
                         if (wsel[0]) rfdata[wadr][7:0] <= wdata[7:0];
                         if (wsel[1]) rfdata[wadr][15:8] <= wdata[15:8];
                         if (wsel[2]) rfdata[wadr][23:16] <= wdata[23:16];
