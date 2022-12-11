@@ -162,4 +162,44 @@ module counter #(
     end
 
 endmodule
+
+module register_file #(
+    parameter BITS = 32
+)(
+    input clk,
+    input reset,
+    input valid,
+    input [3:0] wstrb,
+    input [BITS-1:0] wdata,
+    input [BITS-1:0] la_write,
+    input [BITS-1:0] la_input,
+    output ready,
+    output [BITS-1:0] rdata,
+    output [BITS-1:0] count
+);
+    reg ready;
+    reg [BITS-1:0] rdata [15:0];
+    // Register File to read/write data
+    // On reset, set all register values to 0
+    // Valid signal is fine.
+    // wstrb should be changed. It accounts for byte-specific data changes,
+    // but it does not account for a practical write-enable.
+    // What is la_oenb????
+    always (@posedge clk) begin
+        if (reset) begin
+            ready <= 0;
+            rdata <= 0;
+        end else begin
+            ready <= 1'b0;
+            if (~|la_write) begin
+
+            end
+            if (valid && !ready) begin
+                ready <= 1'b1;
+                
+            end
+        end
+    end
+
+endmodule
 `default_nettype wire
